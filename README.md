@@ -45,4 +45,22 @@ All input files for ttgeno should be prepared in the following steps.
    java -jar GenomeAnalysisTK.jar -R ref.fa -T MuTect2 -I:tumor T.srt.rmdup.realign.bqsr.bam -I:normal H.srt.rmdup.realign.bqsr.bam -o T.m2.vcf.gz
    ```
 
-3) bcftools
+3) bcftools mpileup for tumor bam
+
+      Call INDEL
+   ```shell
+   bcftools mpileup -Q 20 -d 500 -L 500 -a AD -Ou -f ref.fa T.srt.rmdup.realign.bqsr.bam | bcftools call -mv -Oz -V snps -o T.indel.vcf.gz
+   bcftools index -t T.indel.vcf.gz
+   ```
+
+4) cnvnator for host bam
+
+   ```shell
+   cnvnator -root H.400.root -chrom 1 2 3 4 ... X -unique -tree H.srt.rmdup.realign.bqsr.bam
+   cnvnator -root H.400.root -chrom 1 2 3 4 ... X -d ref.fa.split.dir -his 400
+   cnvnator -root H.400.root -chrom 1 2 3 4 ... X -stat 400
+   cnvnator -root H.400.root -chrom 1 2 3 4 ... X -partition 400
+   cnvnator -root H.400.root -chrom 1 2 3 4 ... X -call 400 | gzip - > H.400.cnv.gz
+   gunzip H.400.cnv.gz | awk '{if($5<0.01 && $9<0.5) print $0}'| gzip - > H.400.cnv.p001q05.gz
+   
+   ```
