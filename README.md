@@ -35,7 +35,7 @@ All input files for ttgeno should be prepared in the following steps.
    bcftools index -t H.snp.filter.PASS.SnpGap3.vcf.gz
    bcftools isec -o H.snp.filter.PASS.AroundIndel3 -C H.snp.filter.PASS.vcf.gz H.snp.filter.PASS.SnpGap3.vcf.gz
    bgzip H.snp.filter.PASS.AroundIndel3
-   tabix -s 1 -b 2 -e 2 H.snp.filter.PASS.AroundIndel3.gz
+   tabix -f -s 1 -b 2 -e 2 H.snp.filter.PASS.AroundIndel3.gz
    ```
 
 2) GATK MuTect2 for tumor bam
@@ -61,6 +61,50 @@ All input files for ttgeno should be prepared in the following steps.
    cnvnator -root H.400.root -chrom 1 2 3 4 ... X -stat 400
    cnvnator -root H.400.root -chrom 1 2 3 4 ... X -partition 400
    cnvnator -root H.400.root -chrom 1 2 3 4 ... X -call 400 | gzip - > H.400.cnv.gz
-   gunzip H.400.cnv.gz | awk '{if($5<0.01 && $9<0.5) print $0}'| gzip - > H.400.cnv.p001q05.gz
-   
    ```
+      Filter by p and q value
+   ```shell
+   gunzip H.400.cnv.gz | awk '{if($5<0.01 && $9<0.5) print $0}'| gzip - > H.400.cnv.p001q05.gz
+   ```
+      Filter by overlap with gaps in reference
+      Gap anotation can be downloaded from UCSC ftp, and changed to bed format by yourself.
+   ```shell
+   gunzip H.400.cnv.p001q05.gz | awk '{print $2":"$1}'|awk -F '[:-]' '{if($3-$2>999) print $1"\t"$2-1"\t"$3"\t"$4}'| bedops -n 50% - ref.gap.bed > H.400.cnv.p001q05.gap50.bed
+   ```
+      Filter by overlap with repeatmask regions in reference
+      Repeatmask anotation can be downloaded from UCSC ftp, as well as nestedrepeat anotation. I merged them and changed to bed format.
+   ```shell
+   bedops -n 50% H.400.cnv.p001q05.gap50.bed ref.repeatmask.bed > H.400.cnv.p001q05.gap50.rpmk50.bed
+   ```
+      Regenotype the filtered region
+   ```shell
+   awk '{print $1":"$2"-"$3}END{print "exit"}' H.400.cnv.p001q05.gap50.rpmk50.bed | cnvnator -root H.400.root -genotype 400|cut -d " " -f 2,4|sed 's/[-: ]/\t/g' | bgzip > H.400.cnv.p001q05.gap50.rpmk50.cn.gz
+   tabix -f -0 -s 1 -b 2 -e 3 -c male,X H.400.cnv.p001q05.gap50.rpmk50.cn.gz
+   ```
+
+5) Sequenza and sequenza-utils
+   
+   stat gc content wiggle
+   ```shell
+   sequenza-utils gc_wiggle -f ref.fa -w 50 -o ref.fa.gc50base.txt.gz
+   ```
+   generate seqz file
+   ```shell
+   sequenza-utils bam2seqz -n H.srt.rmdup.realign.bqsr.bam -T T.srt.rmdup.realign.bqsr.bam -gc ref.fa.gc50base.txt.gz -F ref.fa |bgzip > T.seqz.gz
+   tabix -f -s 1 -b 2 -e 2 -S 1 T.seq.gz
+   sequenza-utils seqz_binning -w 50 -s T.seqz.gz | bgzip > T.bin50.seqz.gz
+   ```
+   Estimate ploidy, contamination and local cnv in R
+   Set the parameter of sex `female=T or F`
+   ```R
+   library("sequenza")
+   test<- sequenza.extract("T.bin50.seqz.gz",normalization.method = "median",breaks.method= "fast",max.mut.types=3)
+   CP.example <- sequenza.fit(test,mc.cores=getOption("mc.cores",8L),female=T,chromosome.list=test$chromosomes)
+   sequenza.results(sequenza.extract=test,cp.table=CP.example,sample.id="T",out.dir="T.f.mutmax3",chromosome.list=test$chromosomes,female=T)
+   ```
+   Check results whether the best solution is correspond to prior knowledge or result from immunohistochemistry. Then you need compress the cnv file.
+   ```shell
+   sed 's/"//g' T_segments.txt| bgzip > T_segments.txt.gz
+   tabix -f -S 1 -s 1 -b 2 -e 3 T_segments.txt.gz
+   ```
+   
