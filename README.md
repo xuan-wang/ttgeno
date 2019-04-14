@@ -94,7 +94,7 @@ All input files for ttgeno should be prepared in the following steps.
    tabix -f -s 1 -b 2 -e 2 -S 1 T.seq.gz
    sequenza-utils seqz_binning -w 50 -s T.seqz.gz | bgzip > T.bin50.seqz.gz
    ```
-   Estimate ploidy, contamination and local cnv in R
+   Estimate ploidy, contamination and local cnv in R.
    Set the parameter of sex `female=T or F`
    ```R
    library("sequenza")
