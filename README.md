@@ -6,6 +6,15 @@ This tool is designed to genotype each genomic site of a transmissible tumor unb
 
 Assuming WGS of one transmissible tumor and the corresponding host were performed, and reads were aligned to reference genome respectively. Two bam files were then manipulated by sorting, duplication mark, indel realign and BQSR in GATK. Two bam files' final names are T.srt.rmdup.realign.bqsr.bam (Tumor) and H.srt.rmdup.realign.bqsr.bam (Host).
 
+Several softwares are required for ttgeno:
+
+![all htslib components (version 1.5)](https://github.com/samtools/htslib/releases/tag/1.5), 
+![GATK (version 3.7)](), 
+![nedops (version 2.4.27)](https://github.com/bedops/bedops/releases/tag/v2.4.27), 
+![cnvnator (version 0.3.3)](https://github.com/abyzovlab/CNVnator/releases/tag/v0.3.3),
+![Sequenza-utils (version 2.1.9999b0)](https://bitbucket.org/sequenzatools/sequenza-utils),
+![sequenza (verison 2.1.2)](https://bitbucket.org/sequenzatools/sequenza)
+
 All input files for ttgeno should be prepared in the following steps.
 
 1) GATK HaplotypeCaller for host bam
@@ -119,3 +128,5 @@ All parameters of ttgeno must be as the same order as the description below.
 perl ttgeno.pl H.snp.filter.PASS.AroundIndel3.gz H.snp.filter.PASS.SnpGap3.vcf.gz H.indel.filter.PASS.vcf.gz H.400.cnv.p001q05.gap50.rpmk50.cn.gz T.seqz.gz T_segments.txt.gz T.m2.vcf.gz T.indel.vcf.gz T.acgt.gz cellularity_estimated_in_sequenza chromosome_name
 ```
 Results are two files. The T.sampleid.chr.baseCN.gz contains per-site copy number of tumor. The T.sampleid.chr.amb.gz contains amphibolous sites, which can be abandoned if sites are not too much.
+
+If you have any trouble, send email to me wangxuan at mail.kiz.ac.cn
