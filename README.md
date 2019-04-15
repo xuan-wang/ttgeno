@@ -107,4 +107,15 @@ All input files for ttgeno should be prepared in the following steps.
    sed 's/"//g' T_segments.txt| bgzip > T_segments.txt.gz
    tabix -f -S 1 -s 1 -b 2 -e 3 T_segments.txt.gz
    ```
+   Generate the acgt file for tumor
+   ```shell
+   samtools mpileup -Q 20 -f ref.fa T.srt.rmdup.realign.bqsr.bam |sequenza-utils pileup2acgt -p -|bgzip > T.acgt.gz
+   tabix -S 1 -s 1 -b 2 -e 2 T.acgt.gz
+   ```
    
+When you finish all steps above, you can use the ttgeno.pl to generate the per-site genotype of the tumor now.
+All parameters of ttgeno must be as the same order as the description below.
+```shell
+perl ttgeno.pl H.snp.filter.PASS.AroundIndel3.gz H.snp.filter.PASS.SnpGap3.vcf.gz H.indel.filter.PASS.vcf.gz H.400.cnv.p001q05.gap50.rpmk50.cn.gz T.seqz.gz T_segments.txt.gz T.m2.vcf.gz T.indel.vcf.gz T.acgt.gz cellularity_estimated_in_sequenza chromosome_name
+```
+Results are two files. The T.sampleid.chr.baseCN.gz contains per-site copy number of tumor. The T.sampleid.chr.amb.gz contains amphibolous sites, which can be abandoned if sites are not too much.
